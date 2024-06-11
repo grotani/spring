@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gd.article.mapper.BoardArticleMapper">
+
+	 <!-- boardArticle 수정 -->
+	<select id="selectBoardArticleByNo" 
+	        parameterType="int" 
+	        resultType="com.gd.article.dto.BoardArticle">
+	    SELECT article_no articleNo, 
+	           article_title articleTitle, 
+	           article_content articleContent, 
+	           create_date createDate, 
+	           update_date updateDate
+	    FROM board_article 
+	    WHERE article_no = #{articleNo}
+	</select>
+    
+	<!-- boardArticle 수정 -->
+    <update id="updateBoardArticle" 
+    		parameterType="com.gd.article.dto.BoardArticle">
+        UPDATE board_article
+        SET article_title = #{articleTitle},
+            article_content = #{articleContent},
+            update_date = NOW()
+        WHERE article_no = #{articleNo}
+    </update>
+
+	<!-- 삭제 -->
+	<delete id="deleteBoardArticle" parameterType="int">
+		DELETE FROM board_article
+		WHERE article_no = #{articleNo}	
+	</delete>
+	
+	<!-- boardOne -->
+	<select id="selectBoardOne"
+				parameterType="int"
+				resultType="map">
+			SELECT b.article_no articleNo, 
+				b.article_title articleTitle, 
+				b.article_content articleContent, 
+				b.create_date createDate, 
+				b.update_date updateDate,	
+				f.file_no fileNo,
+				f.file_name fileName,
+				f.original_name originalName, <!-- a href="file_name" download="original_name" -->		
+				f.file_type fileType
+		FROM board_article b LEFT JOIN board_file f 
+		ON f.article_no = b.article_no
+		WHERE b.article_no = #{articleNo}
+	</select>
+	
+	<insert id="insertBoardArticle" parameterType="com.gd.article.dto.BoardArticle">
+		<selectKey resultType="int" order="AFTER" keyProperty="articleNo">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+		
+		INSERT INTO board_article(
+			article_title,
+			article_content,
+			update_date,
+			create_date
+		) VALUES (
+			#{articleTitle},
+			#{articleContent},
+			NOW(),
+			NOW()
+		)	
+	</insert>
+	<!-- board List  -->
+	<select id="selectBoardList" parameterType="map" resultType="Hashmap">
+		SELECT b.article_no articleNo, 
+				b.article_title articleTitle, 
+				b.article_content articleContent, 
+				f.original_name originalName,
+				f.file_name fileName,
+				b.create_date createDate, 
+				b.update_date updateDate				
+		FROM board_article b	
+		LEFT JOIN board_file f ON f.article_no = b.article_no
+			<where> <!-- 검색조건 검색이 있을수도 없을 수도 하려면 mybatis 동적쿼리이용 태그로 WHERE 문을 준다-->
+			<if test="searchWord != null  and searchWord != ''">
+				AND b.article_content LIKE CONCAT('%', #{searchWord}, '%') 
+			</if>
+		</where>
+		ORDER BY  b.article_no DESC
+		LIMIT #{beginRow}, #{rowPerPage}
+	</select>
+	<!-- 페이징 하기 위한 COUNT 출력 -->
+	<select id="selectBoardCount" resultType="int">
+		SELECT COUNT(*) FROM board_article
+	</select>
+</mapper>
